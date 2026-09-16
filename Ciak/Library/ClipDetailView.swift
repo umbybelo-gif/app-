@@ -13,21 +13,27 @@ struct ClipDetailView: View {
     @State private var noteDraft = ""
     @State private var editingNote = false
     @State private var shareURL: URL?
-    @State private var statusMessage: String?
+    @State private var message: String?
     @State private var showMove = false
+    @State private var confirmDelete = false
 
     private var clip: Clip? { store.sketch(target)?.clips.first { $0.id == clipID } }
+    private var accent: Color { Color.project(store.project(target.projectID)?.colorIndex ?? 0) }
 
     var body: some View {
-        Group {
+        ZStack {
+            Ink.bg.ignoresSafeArea()
+
             if let clip {
                 content(clip)
             } else {
-                EmptyStateView(icon: "film.stack", title: "Clip non trovata", message: "È stata eliminata o spostata.")
+                EmptyStateView(icon: "film.stack", title: "Clip non trovata",
+                               message: "È stata eliminata o spostata.")
             }
         }
         .navigationTitle(clip.map { "Ciak \($0.take)" } ?? "Clip")
         .navigationBarTitleDisplayMode(.inline)
+        .darkNavigationBar()
         .toolbar { toolbar }
         .onAppear(perform: preparePlayer)
         .onDisappear { player?.pause() }
@@ -38,14 +44,20 @@ struct ClipDetailView: View {
                              set: { if $0 == nil { shareURL = nil } })) { payload in
             ShareSheet(items: [payload.url])
         }
-        .alert("Ciak", isPresented: Binding(get: { statusMessage != nil },
-                                            set: { if !$0 { statusMessage = nil } })) {
-            Button("OK", role: .cancel) {}
-        } message: { Text(statusMessage ?? "") }
+        .messageAlert("Ciak", message: $message)
         .alert("Nota del ciak", isPresented: $editingNote) {
             TextField("Es. luce migliore, battuta sbagliata…", text: $noteDraft)
             Button("Annulla", role: .cancel) {}
             Button("Salva") { store.updateClip(clipID, in: target, note: noteDraft) }
+        }
+        .confirmationDialog("Eliminare questo ciak?", isPresented: $confirmDelete, titleVisibility: .visible) {
+            Button("Elimina il video", role: .destructive) {
+                store.deleteClip(clipID, in: target)
+                dismiss()
+            }
+            Button("Annulla", role: .cancel) {}
+        } message: {
+            Text("Il file viene cancellato dal dispositivo.")
         }
     }
 
@@ -57,63 +69,128 @@ struct ClipDetailView: View {
                                  contentMode: .fit)
                     .frame(maxWidth: .infinity)
                     .background(Color.black)
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                    .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .strokeBorder(Ink.stroke, lineWidth: 1))
 
-                Button {
-                    store.updateClip(clipID, in: target, isSelect: !clip.isSelect)
-                } label: {
-                    Label(clip.isSelect ? "Ciak buono" : "Segna come buono",
-                          systemImage: clip.isSelect ? "star.fill" : "star")
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 8)
-                }
-                .buttonStyle(.bordered)
-                .tint(clip.isSelect ? .yellow : .accentColor)
+                selectToggle(clip)
+
+                actionRow
 
                 if !clip.note.isEmpty {
-                    Text(clip.note)
-                        .font(.callout)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(12)
-                        .background(.quaternary.opacity(0.5), in: RoundedRectangle(cornerRadius: 10))
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("Nota").techFont(9, weight: .bold).foregroundStyle(Ink.faint)
+                        Text(clip.note)
+                            .font(.system(size: 14))
+                            .foregroundStyle(Ink.text.opacity(0.9))
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                    .padding(14)
+                    .card(radius: 14)
                 }
 
-                VStack(spacing: 0) {
-                    infoRow("Durata", clip.durationLabel)
-                    Divider()
-                    infoRow("Risoluzione", "\(clip.width)×\(clip.height)")
-                    Divider()
-                    infoRow("Frame rate", clip.fps > 0 ? String(format: "%.0f fps", clip.fps) : "—")
-                    Divider()
-                    infoRow("Codec", clip.codec.isEmpty ? "—" : clip.codec)
-                    Divider()
-                    infoRow("Colore", clip.colorMode.isEmpty ? "—" : clip.colorMode)
-                    Divider()
-                    infoRow("Stabilizzazione", clip.stabilization.isEmpty ? "—" : clip.stabilization)
-                    Divider()
-                    infoRow("Obiettivo", clip.lens.isEmpty ? "—" : clip.lens)
-                    Divider()
-                    infoRow("Origine", clip.originLabel)
-                    Divider()
-                    infoRow("Dimensione", clip.sizeLabel)
-                    Divider()
-                    infoRow("Girato il", Formatters.date.string(from: clip.createdAt))
-                }
-                .background(.quaternary.opacity(0.35), in: RoundedRectangle(cornerRadius: 12))
+                technicalSheet(clip)
             }
-            .padding()
+            .padding(.horizontal, 20)
+            .padding(.bottom, 40)
+        }
+        .scrollIndicators(.hidden)
+    }
+
+    private func selectToggle(_ clip: Clip) -> some View {
+        Button {
+            store.updateClip(clipID, in: target, isSelect: !clip.isSelect)
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: clip.isSelect ? "star.fill" : "star")
+                    .font(.system(size: 14, weight: .bold))
+                Text(clip.isSelect ? "Ciak buono" : "Segna come buono")
+                    .font(.system(size: 15, weight: .bold))
+            }
+            .foregroundStyle(clip.isSelect ? Ink.bg : Ink.gold)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 13)
+            .background {
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .fill(clip.isSelect ? Ink.gold : Ink.surface)
+            }
+            .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .strokeBorder(clip.isSelect ? .clear : Ink.gold.opacity(0.35), lineWidth: 1))
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var actionRow: some View {
+        HStack(spacing: 10) {
+            actionTile(icon: "square.and.arrow.up", label: "Condividi") {
+                if let clip { shareURL = store.url(for: clip) }
+            }
+            actionTile(icon: "photo.badge.arrow.down", label: "In Foto") { saveToPhotos() }
+            actionTile(icon: "note.text", label: "Nota") {
+                noteDraft = clip?.note ?? ""
+                editingNote = true
+            }
+            actionTile(icon: "folder", label: "Sposta") { showMove = true }
         }
     }
 
-    private func infoRow(_ title: String, _ value: String) -> some View {
-        HStack {
-            Text(title).foregroundStyle(.secondary)
-            Spacer()
-            Text(value).multilineTextAlignment(.trailing)
+    private func actionTile(icon: String, label: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            VStack(spacing: 6) {
+                Image(systemName: icon).font(.system(size: 16, weight: .semibold))
+                Text(label).techFont(8.5)
+            }
+            .foregroundStyle(Ink.text)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 13)
+            .card(radius: 14)
         }
-        .font(.subheadline)
-        .padding(.horizontal, 12)
-        .padding(.vertical, 9)
+        .buttonStyle(.plain)
+    }
+
+    private func technicalSheet(_ clip: Clip) -> some View {
+        VStack(spacing: 0) {
+            HStack {
+                Text("Scheda tecnica").techFont(9, weight: .bold).foregroundStyle(Ink.faint)
+                Spacer()
+                Text(clip.originLabel).techFont(9).foregroundStyle(clip.isImported ? Ink.dim : accent)
+            }
+            .padding(.horizontal, 14)
+            .padding(.top, 14)
+            .padding(.bottom, 10)
+
+            infoRow("Durata", clip.durationLabel)
+            infoRow("Risoluzione", clip.width > 0 ? "\(clip.width)×\(clip.height)" : "—")
+            infoRow("Frame rate", clip.fps > 0 ? String(format: "%.0f fps", clip.fps) : "—")
+            infoRow("Codec", clip.codec.isEmpty ? "—" : clip.codec)
+            infoRow("Colore", clip.colorMode.isEmpty ? "—" : clip.colorMode)
+            infoRow("Stabilizzazione", clip.stabilization.isEmpty ? "—" : clip.stabilization)
+            infoRow("Obiettivo", clip.lens.isEmpty ? "—" : clip.lens)
+            infoRow("Dimensione", clip.sizeLabel)
+            infoRow("Girato il", Formatters.date.string(from: clip.createdAt), last: true)
+        }
+        .card(radius: 16)
+    }
+
+    private func infoRow(_ title: String, _ value: String, last: Bool = false) -> some View {
+        VStack(spacing: 0) {
+            HStack {
+                Text(title)
+                    .font(.system(size: 13))
+                    .foregroundStyle(Ink.dim)
+                Spacer()
+                Text(value)
+                    .font(.system(size: 13, weight: .medium, design: .monospaced))
+                    .foregroundStyle(Ink.text)
+                    .multilineTextAlignment(.trailing)
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 10)
+
+            if !last {
+                Rectangle().fill(Ink.stroke).frame(height: 1).padding(.leading, 14)
+            }
+        }
     }
 
     @ToolbarContentBuilder
@@ -128,20 +205,14 @@ struct ClipDetailView: View {
                     Label("Salva in Foto", systemImage: "photo.badge.arrow.down")
                 }
 
-                Button {
-                    noteDraft = clip?.note ?? ""
-                    editingNote = true
-                } label: { Label("Nota", systemImage: "note.text") }
-
-                Button { showMove = true } label: { Label("Sposta in…", systemImage: "folder") }
-
                 Divider()
 
-                Button(role: .destructive) {
-                    store.deleteClip(clipID, in: target)
-                    dismiss()
-                } label: { Label("Elimina", systemImage: "trash") }
-            } label: { Image(systemName: "ellipsis.circle") }
+                Button(role: .destructive) { confirmDelete = true } label: {
+                    Label("Elimina", systemImage: "trash")
+                }
+            } label: {
+                Image(systemName: "ellipsis").font(.system(size: 15, weight: .bold))
+            }
         }
     }
 
@@ -149,7 +220,7 @@ struct ClipDetailView: View {
         guard let clip else { return }
         let url = store.url(for: clip)
         guard FileManager.default.fileExists(atPath: url.path) else {
-            statusMessage = "Il file di questo ciak non è più sul dispositivo."
+            message = "Il file di questo ciak non è più sul dispositivo."
             return
         }
         player = AVPlayer(url: url)
@@ -161,9 +232,9 @@ struct ClipDetailView: View {
         Task {
             do {
                 try await Exporter.saveToPhotoLibrary([url])
-                statusMessage = "Video salvato in Foto."
+                message = "Video salvato in Foto."
             } catch {
-                statusMessage = error.localizedDescription
+                message = error.localizedDescription
             }
         }
     }

@@ -57,8 +57,12 @@ struct ClipThumbnail: View {
                     .scaledToFill()
             } else {
                 Rectangle()
-                    .fill(Color.secondary.opacity(0.18))
-                    .overlay(Image(systemName: "film").foregroundStyle(.secondary))
+                    .fill(Ink.surfaceHigh)
+                    .overlay(
+                        Image(systemName: "film")
+                            .font(.system(size: 14))
+                            .foregroundStyle(Ink.faint)
+                    )
             }
         }
         .clipShape(RoundedRectangle(cornerRadius: cornerRadius))

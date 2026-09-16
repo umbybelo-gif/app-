@@ -124,36 +124,41 @@ struct CameraScreen: View {
                     dismiss()
                 } label: {
                     Image(systemName: "chevron.down")
-                        .font(.system(size: 16, weight: .semibold))
-                        .frame(width: 38, height: 38)
-                        .background(.black.opacity(0.45), in: Circle())
+                        .font(.system(size: 15, weight: .bold))
+                        .frame(width: 40, height: 40)
+                        .background(.black.opacity(0.5), in: Circle())
+                        .overlay(Circle().strokeBorder(.white.opacity(0.12), lineWidth: 1))
                 }
                 .disabled(camera.isRecording)
                 .opacity(camera.isRecording ? 0.3 : 1)
 
                 Spacer()
 
-                VStack(spacing: 2) {
+                VStack(spacing: 1) {
                     Text(project?.name ?? "—")
-                        .font(.caption2.weight(.semibold))
-                        .foregroundStyle(.white.opacity(0.7))
+                        .techFont(8)
+                        .foregroundStyle(Ink.accent)
                     Text(sketch?.title ?? "—")
-                        .font(.subheadline.weight(.bold))
+                        .font(.system(size: 14, weight: .bold))
+                        .fontWidth(.condensed)
+                        .lineLimit(1)
                     Text("Ciak \(sketch?.nextTake ?? 1)")
-                        .font(.caption2)
-                        .foregroundStyle(.white.opacity(0.7))
+                        .techFont(8)
+                        .foregroundStyle(.white.opacity(0.55))
                 }
-                .padding(.horizontal, 14)
-                .padding(.vertical, 6)
-                .background(.black.opacity(0.45), in: Capsule())
+                .padding(.horizontal, 16)
+                .padding(.vertical, 7)
+                .background(.black.opacity(0.5), in: Capsule())
+                .overlay(Capsule().strokeBorder(.white.opacity(0.12), lineWidth: 1))
 
                 Spacer()
 
                 Button { showSettings = true } label: {
                     Image(systemName: "slider.horizontal.3")
-                        .font(.system(size: 16, weight: .semibold))
-                        .frame(width: 38, height: 38)
-                        .background(.black.opacity(0.45), in: Circle())
+                        .font(.system(size: 15, weight: .bold))
+                        .frame(width: 40, height: 40)
+                        .background(.black.opacity(0.5), in: Circle())
+                        .overlay(Circle().strokeBorder(.white.opacity(0.12), lineWidth: 1))
                 }
                 .disabled(camera.isRecording)
                 .opacity(camera.isRecording ? 0.3 : 1)
@@ -177,36 +182,42 @@ struct CameraScreen: View {
     }
 
     private var recordingBadge: some View {
-        HStack(spacing: 8) {
-            Circle().fill(.red).frame(width: 10, height: 10)
-                .opacity(camera.recordedDuration.truncatingRemainder(dividingBy: 1) < 0.5 ? 1 : 0.25)
+        HStack(spacing: 9) {
+            Circle()
+                .fill(Ink.live)
+                .frame(width: 9, height: 9)
+                .shadow(color: Ink.live, radius: 6)
+                .opacity(camera.recordedDuration.truncatingRemainder(dividingBy: 1) < 0.5 ? 1 : 0.2)
             Text(Formatters.timecode(camera.recordedDuration))
-                .font(.system(.subheadline, design: .monospaced).weight(.semibold))
+                .font(.system(size: 15, weight: .bold, design: .monospaced))
                 .contentTransition(.numericText())
+                .foregroundStyle(.white)
         }
         .padding(.horizontal, 14)
-        .padding(.vertical, 7)
-        .background(.black.opacity(0.55), in: Capsule())
+        .padding(.vertical, 8)
+        .background(.black.opacity(0.6), in: Capsule())
+        .overlay(Capsule().strokeBorder(Ink.live.opacity(0.5), lineWidth: 1))
     }
 
     private var formatChips: some View {
-        HStack(spacing: 6) {
-            chip(camera.settings.resolutionLabel)
-            chip("\(Int(camera.settings.fps.rounded())) fps")
-            chip(camera.appliedCodec)
-            if camera.settings.color != .sdr { chip(camera.settings.color.label, tint: .orange) }
-            chip(camera.appliedStabilization,
-                 tint: camera.appliedStabilization == "Off" ? .white.opacity(0.4) : .green)
+        HStack(spacing: 5) {
+            camChip(camera.settings.resolutionLabel, tint: .white)
+            camChip("\(Int(camera.settings.fps.rounded())) fps", tint: .white)
+            camChip(camera.appliedCodec, tint: .white)
+            if camera.settings.color != .sdr { camChip(camera.settings.color.label, tint: Ink.accent) }
+            camChip(camera.appliedStabilization,
+                    tint: camera.appliedStabilization == "Off" ? Color.white.opacity(0.4) : Ink.good)
         }
-        .font(.caption2.weight(.semibold))
     }
 
-    private func chip(_ text: String, tint: Color = .white) -> some View {
+    private func camChip(_ text: String, tint: Color) -> some View {
         Text(text)
-            .padding(.horizontal, 8)
-            .padding(.vertical, 4)
-            .background(.black.opacity(0.5), in: Capsule())
+            .techFont(9, weight: .bold)
             .foregroundStyle(tint)
+            .padding(.horizontal, 7)
+            .padding(.vertical, 4)
+            .background(.black.opacity(0.55), in: Capsule())
+            .overlay(Capsule().strokeBorder(tint.opacity(0.3), lineWidth: 1))
     }
 
     // MARK: Barra inferiore
@@ -237,10 +248,11 @@ struct CameraScreen: View {
                     pinchStartZoom = stop
                 } label: {
                     Text(zoomLabel(stop))
-                        .font(.caption2.weight(.bold))
-                        .foregroundStyle(selected ? .black : .white)
+                        .font(.system(size: selected ? 12 : 10.5, weight: .bold, design: .monospaced))
+                        .foregroundStyle(selected ? Ink.bg : .white)
                         .frame(width: selected ? 44 : 34, height: selected ? 44 : 34)
                         .background(selected ? Color.white : Color.black.opacity(0.5), in: Circle())
+                        .overlay(Circle().strokeBorder(.white.opacity(selected ? 0 : 0.15), lineWidth: 1))
                 }
             }
         }
@@ -285,10 +297,11 @@ struct CameraScreen: View {
                               action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Image(systemName: systemName)
-                .font(.system(size: 17, weight: .semibold))
-                .frame(width: 44, height: 44)
-                .background(active ? Color.yellow.opacity(0.85) : Color.black.opacity(0.5), in: Circle())
-                .foregroundStyle(active ? .black : .white)
+                .font(.system(size: 16, weight: .bold))
+                .frame(width: 46, height: 46)
+                .background(active ? Ink.gold : Color.black.opacity(0.5), in: Circle())
+                .foregroundStyle(active ? Ink.bg : .white)
+                .overlay(Circle().strokeBorder(.white.opacity(active ? 0 : 0.14), lineWidth: 1))
         }
     }
 
@@ -297,11 +310,18 @@ struct CameraScreen: View {
             toggleRecording()
         } label: {
             ZStack {
-                Circle().stroke(.white, lineWidth: 4).frame(width: 78, height: 78)
-                RoundedRectangle(cornerRadius: camera.isRecording ? 6 : 32)
-                    .fill(.red)
-                    .frame(width: camera.isRecording ? 32 : 64,
-                           height: camera.isRecording ? 32 : 64)
+                Circle()
+                    .stroke(.white.opacity(0.9), lineWidth: 3)
+                    .frame(width: 80, height: 80)
+                Circle()
+                    .stroke(Ink.live.opacity(camera.isRecording ? 0.6 : 0), lineWidth: 3)
+                    .frame(width: 92, height: 92)
+                    .blur(radius: 6)
+                RoundedRectangle(cornerRadius: camera.isRecording ? 7 : 33, style: .continuous)
+                    .fill(Ink.live)
+                    .frame(width: camera.isRecording ? 32 : 66,
+                           height: camera.isRecording ? 32 : 66)
+                    .shadow(color: Ink.live.opacity(0.5), radius: 12)
             }
         }
         .disabled(savingClip)
@@ -344,7 +364,7 @@ struct CameraScreen: View {
                 .font(.system(size: 42, weight: .light))
 
             Text(showSettingsButton ? "Accesso alla fotocamera" : "Fotocamera non disponibile")
-                .font(.headline)
+                .displayFont(24)
 
             Text(reason)
                 .font(.subheadline)
@@ -359,23 +379,21 @@ struct CameraScreen: View {
                             UIApplication.shared.open(url)
                         }
                     }
-                    .buttonStyle(.borderedProminent)
+                    .buttonStyle(AccentButtonStyle())
                 } else {
                     Button {
                         showPhotoImport = true
                     } label: {
                         Label("Importa da Foto", systemImage: "photo.on.rectangle")
-                            .frame(maxWidth: .infinity)
                     }
-                    .buttonStyle(.borderedProminent)
+                    .buttonStyle(AccentButtonStyle())
 
                     Button {
                         showFileImport = true
                     } label: {
                         Label("Importa da File", systemImage: "folder")
-                            .frame(maxWidth: .infinity)
                     }
-                    .buttonStyle(.bordered)
+                    .buttonStyle(OutlineButtonStyle())
                 }
 
                 Button("Chiudi") { dismiss() }

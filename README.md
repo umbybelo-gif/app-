@@ -84,6 +84,13 @@ sulla finestra del Simulatore**: finisce nell'app Foto e da lì lo importi.
 
 ## Cosa fa
 
+### Aspetto
+
+Interfaccia **sempre scura**, pensata per il set e per la sala montaggio: nero profondo,
+superfici stratificate, un accento arancione e l'oro riservato ai ciak buoni. Titoli
+condensati, dati tecnici in monospaziato. Non c'è modalità chiara: l'app forza il tema
+scuro anche nei fogli di sistema e nella schermata di avvio.
+
 ### Organizzazione
 - **Progetti** con nome, colore, note, archiviazione.
 - **Sketch** dentro ogni progetto, con copione/note e stato "completato".

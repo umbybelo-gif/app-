@@ -11,6 +11,9 @@ struct CiakApp: App {
             RootView()
                 .environment(store)
                 .environment(auth)
+                // L'app vive al buio: è pensata per il set e per la sala montaggio.
+                .preferredColorScheme(.dark)
+                .tint(Ink.accent)
                 .onChange(of: scenePhase) { _, phase in
                     auth.handleScenePhase(phase)
                 }
@@ -23,16 +26,15 @@ struct RootView: View {
 
     var body: some View {
         ZStack {
+            Ink.bg.ignoresSafeArea()
+
             switch auth.phase {
             case .needsSetup:
-                PasswordSetupView()
-                    .transition(.opacity)
+                PasswordSetupView().transition(.opacity)
             case .locked:
-                LockView()
-                    .transition(.opacity)
+                LockView().transition(.opacity)
             case .unlocked:
-                ProjectsView()
-                    .transition(.opacity)
+                ProjectsView().transition(.opacity)
             }
 
             if auth.isObscured { PrivacyShield() }

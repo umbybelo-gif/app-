@@ -1,21 +1,7 @@
 import Foundation
 import SwiftUI
 
-extension Color {
-    init(hex: String) {
-        var value: UInt64 = 0
-        Scanner(string: hex).scanHexInt64(&value)
-        self.init(.sRGB,
-                  red: Double((value >> 16) & 0xFF) / 255,
-                  green: Double((value >> 8) & 0xFF) / 255,
-                  blue: Double(value & 0xFF) / 255,
-                  opacity: 1)
-    }
-
-    static func project(_ index: Int) -> Color { Color(hex: ProjectPalette.hex(index)) }
-}
-
-/// Stato vuoto riutilizzabile.
+/// Stato vuoto: icona spenta, titolo stretto, una sola azione forte.
 struct EmptyStateView: View {
     let icon: String
     let title: String
@@ -26,25 +12,33 @@ struct EmptyStateView: View {
     var body: some View {
         VStack(spacing: 14) {
             Image(systemName: icon)
-                .font(.system(size: 44))
-                .foregroundStyle(.secondary)
-            Text(title).font(.headline)
+                .font(.system(size: 34, weight: .light))
+                .foregroundStyle(Ink.faint)
+                .frame(width: 72, height: 72)
+                .background(Circle().fill(Ink.surface))
+                .overlay(Circle().strokeBorder(Ink.stroke, lineWidth: 1))
+
+            Text(title).displayFont(22).foregroundStyle(Ink.text)
+
             Text(message)
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
+                .font(.system(size: 13))
+                .foregroundStyle(Ink.dim)
                 .multilineTextAlignment(.center)
+                .frame(maxWidth: 300)
+
             if let actionTitle, let action {
                 Button(actionTitle, action: action)
-                    .buttonStyle(.borderedProminent)
-                    .padding(.top, 4)
+                    .buttonStyle(AccentButtonStyle())
+                    .frame(maxWidth: 220)
+                    .padding(.top, 6)
             }
         }
-        .padding(32)
+        .padding(.vertical, 36)
         .frame(maxWidth: .infinity)
     }
 }
 
-/// Campo di testo dentro un alert per creare o rinominare.
+/// Campo di testo dentro un alert, per creare o rinominare.
 struct NameAlertModifier: ViewModifier {
     let title: String
     let placeholder: String
@@ -68,16 +62,55 @@ extension View {
         modifier(NameAlertModifier(title: title, placeholder: placeholder,
                                    isPresented: isPresented, text: text, onConfirm: onConfirm))
     }
+
+    /// Alert di solo testo pilotato da una stringa opzionale.
+    func messageAlert(_ title: String, message: Binding<String?>) -> some View {
+        alert(title, isPresented: Binding(get: { message.wrappedValue != nil },
+                                          set: { if !$0 { message.wrappedValue = nil } })) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(message.wrappedValue ?? "")
+        }
+    }
 }
 
-/// Etichetta compatta con icona, usata nelle intestazioni.
-struct StatLabel: View {
-    let icon: String
-    let text: String
+/// Campo di ricerca scuro, al posto di `.searchable`.
+struct SearchField: View {
+    @Binding var text: String
+    var placeholder: String
 
     var body: some View {
-        Label(text, systemImage: icon)
-            .font(.caption)
-            .foregroundStyle(.secondary)
+        HStack(spacing: 8) {
+            Image(systemName: "magnifyingglass")
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(Ink.faint)
+            TextField("", text: $text, prompt: Text(placeholder).foregroundColor(Ink.faint))
+                .font(.system(size: 14))
+                .foregroundStyle(Ink.text)
+                .autocorrectionDisabled()
+            if !text.isEmpty {
+                Button {
+                    text = ""
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.system(size: 14))
+                        .foregroundStyle(Ink.faint)
+                }
+            }
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+        .card(radius: 12, fill: Ink.surface)
     }
+}
+
+/// Wrapper per presentare il foglio di condivisione con `sheet(item:)`.
+struct ExportPayload: Identifiable {
+    let url: URL
+    var id: String { url.path }
+    init(_ url: URL) { self.url = url }
+}
+
+extension RecordingTarget: Identifiable {
+    var id: String { "\(projectID.uuidString)-\(sketchID.uuidString)" }
 }

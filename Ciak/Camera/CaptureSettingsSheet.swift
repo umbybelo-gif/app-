@@ -93,14 +93,17 @@ struct CaptureSettingsSheet: View {
                     LabeledContent("Spazio libero", value: Formatters.bytes(LibraryStore.availableBytes))
                 }
             }
+            .darkForm()
             .navigationTitle("Ripresa")
             .navigationBarTitleDisplayMode(.inline)
+            .darkNavigationBar()
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Fine") { dismiss() }
                 }
             }
         }
+        .tint(Ink.accent)
     }
 
     private var availableColorModes: [ColorPreference] {

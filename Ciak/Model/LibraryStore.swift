@@ -305,6 +305,6 @@ struct CaptureMetadata {
 }
 
 enum ProjectPalette {
-    static let colors: [String] = ["FF6B35", "3AAFA9", "F2C14E", "8367C7", "4ECB71", "EF476F"]
+    static let colors: [String] = ["FF5A1F", "2BE8C5", "F5C518", "9B6BFF", "35D07F", "FF4D8D"]
     static func hex(_ index: Int) -> String { colors[((index % colors.count) + colors.count) % colors.count] }
 }

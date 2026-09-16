@@ -68,8 +68,10 @@ struct ManualControlsSheet: View {
                     Text("Bloccare esposizione e bianco evita gli sbalzi di luminosità e colore fra un ciak e l'altro.")
                 }
             }
+            .darkForm()
             .navigationTitle("Controlli manuali")
             .navigationBarTitleDisplayMode(.inline)
+            .darkNavigationBar()
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Tutto automatico") {
@@ -108,5 +110,6 @@ struct ManualControlsSheet: View {
                 if manualWhiteBalance { camera.setWhiteBalance(temperature: value) }
             }
         }
+        .tint(Ink.accent)
     }
 }

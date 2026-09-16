@@ -67,8 +67,10 @@ struct SettingsView: View {
                     Text("Rimuove i riferimenti a video non più presenti e cancella i file rimasti senza scheda.")
                 }
             }
+            .darkForm()
             .navigationTitle("Impostazioni")
             .navigationBarTitleDisplayMode(.inline)
+            .darkNavigationBar()
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) { Button("Fine") { dismiss() } }
             }
@@ -90,6 +92,7 @@ struct SettingsView: View {
                 Button("OK", role: .cancel) {}
             } message: { Text(message ?? "") }
         }
+        .tint(Ink.accent)
     }
 
     private func clearPasswordFields() {

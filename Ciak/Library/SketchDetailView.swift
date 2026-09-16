@@ -14,34 +14,44 @@ struct SketchDetailView: View {
     @State private var isSelecting = false
     @State private var exportURL: URL?
     @State private var exporting = false
-    @State private var statusMessage: String?
+    @State private var message: String?
     @State private var showMovePicker = false
     @State private var showPhotoImport = false
     @State private var showFileImport = false
 
     private var sketch: Sketch? { store.sketch(target) }
     private var project: Project? { store.project(target.projectID) }
+    private var accent: Color { Color.project(project?.colorIndex ?? 0) }
 
-    private let columns = [GridItem(.adaptive(minimum: 150), spacing: 12)]
+    private let columns = [GridItem(.adaptive(minimum: 158), spacing: 10)]
 
     var body: some View {
-        Group {
+        ZStack {
+            Ink.bg.ignoresSafeArea()
+            GlowBackdrop(color: accent, height: 240).opacity(0.7)
+
             if let sketch {
                 content(sketch)
             } else {
-                EmptyStateView(icon: "questionmark.folder", title: "Sketch non trovato", message: "Potrebbe essere stato eliminato.")
+                EmptyStateView(icon: "questionmark.folder", title: "Sketch non trovato",
+                               message: "Potrebbe essere stato eliminato.")
             }
         }
         .navigationTitle(sketch?.title ?? "Sketch")
         .navigationBarTitleDisplayMode(.inline)
+        .darkNavigationBar()
         .toolbar { toolbar }
-        .safeAreaInset(edge: .bottom) { recordBar }
+        .safeAreaInset(edge: .bottom) { bottomBar }
         .fullScreenCover(isPresented: $showCamera) { CameraScreen(target: target) }
         .nameAlert("Rinomina sketch", placeholder: "Titolo",
                    isPresented: $showRename, text: $renameText) {
             store.updateSketch(target, title: renameText.trimmingCharacters(in: .whitespaces))
         }
-        .sheet(isPresented: $editingScript) { scriptEditor }
+        .sheet(isPresented: $editingScript) {
+            TextEditorSheet(title: "Copione", text: $scriptDraft) {
+                store.updateSketch(target, script: scriptDraft)
+            }
+        }
         .sheet(isPresented: $showMovePicker) {
             MoveClipsView(source: target, clipIDs: Array(selection)) {
                 selection.removeAll()
@@ -52,54 +62,81 @@ struct SketchDetailView: View {
                              set: { if $0 == nil { exportURL = nil } })) { payload in
             ShareSheet(items: [payload.url])
         }
-        .alert("Ciak", isPresented: Binding(get: { statusMessage != nil },
-                                            set: { if !$0 { statusMessage = nil } })) {
-            Button("OK", role: .cancel) {}
-        } message: { Text(statusMessage ?? "") }
-        .overlay { if exporting { ProgressOverlay(text: "Preparo i file…") } }
+        .messageAlert("Ciak", message: $message)
+        .overlay { if exporting { ProgressOverlay(text: "Preparo i file") } }
         .videoImporter(target: target, showPhotos: $showPhotoImport, showFiles: $showFileImport)
     }
+
+    // MARK: Contenuto
 
     private func content(_ sketch: Sketch) -> some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
-                if !sketch.script.isEmpty || !sketch.notes.isEmpty {
-                    VStack(alignment: .leading, spacing: 8) {
-                        if !sketch.script.isEmpty {
-                            Text(sketch.script)
-                                .font(.callout)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .padding(12)
-                                .background(.quaternary.opacity(0.5), in: RoundedRectangle(cornerRadius: 10))
-                        }
-                        if !sketch.notes.isEmpty {
-                            Text(sketch.notes).font(.footnote).foregroundStyle(.secondary)
-                        }
+                hero(sketch)
+
+                if !sketch.script.isEmpty {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("Copione").techFont(9, weight: .bold).foregroundStyle(Ink.faint)
+                        Text(sketch.script)
+                            .font(.system(size: 14))
+                            .foregroundStyle(Ink.text.opacity(0.9))
+                            .frame(maxWidth: .infinity, alignment: .leading)
                     }
-                    .padding(.horizontal)
+                    .padding(14)
+                    .card(radius: 14)
                 }
 
                 if sketch.clips.isEmpty {
-                    VStack(spacing: 4) {
+                    VStack(spacing: 10) {
                         EmptyStateView(icon: "video.badge.plus",
                                        title: "Nessun ciak",
-                                       message: "Premi il pulsante rosso per girare la prima ripresa, oppure aggiungi un video che hai già.",
-                                       actionTitle: "Registra ora") { showCamera = true }
+                                       message: "Premi il pulsante rosso per girare la prima ripresa, oppure aggiungi un video che hai già.")
                         Button("Importa un video") { showPhotoImport = true }
-                            .font(.subheadline)
+                            .buttonStyle(OutlineButtonStyle())
+                            .frame(maxWidth: 240)
                     }
-                    .padding(.top, 40)
+                    .padding(.top, 20)
                 } else {
-                    LazyVGrid(columns: columns, spacing: 12) {
+                    SectionHeader(title: "Ciak", trailing: "\(sketch.clips.count)")
+
+                    LazyVGrid(columns: columns, spacing: 10) {
                         ForEach(sketch.clips) { clip in
                             clipCell(clip)
                         }
                     }
-                    .padding(.horizontal)
                 }
             }
-            .padding(.bottom, 90)
+            .padding(.horizontal, 20)
+            .padding(.bottom, 24)
         }
+        .scrollIndicators(.hidden)
+    }
+
+    private func hero(_ sketch: Sketch) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 8) {
+                Text(project?.name ?? "").techFont(10, weight: .bold).foregroundStyle(accent)
+                if sketch.isDone {
+                    TechChip(text: "completato", icon: "checkmark", tint: Ink.good)
+                }
+            }
+            Text(sketch.title)
+                .displayFont(32)
+                .foregroundStyle(Ink.text)
+                .fixedSize(horizontal: false, vertical: true)
+
+            HStack(spacing: 6) {
+                TechChip(text: "\(sketch.clips.count) ciak", tint: accent)
+                if sketch.selectsCount > 0 {
+                    TechChip(text: "\(sketch.selectsCount) buone", icon: "star.fill", tint: Ink.gold)
+                }
+                if sketch.totalDuration > 0 {
+                    TechChip(text: Formatters.duration(sketch.totalDuration), icon: "clock")
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.top, 4)
     }
 
     private func clipCell(_ clip: Clip) -> some View {
@@ -124,12 +161,12 @@ struct SketchDetailView: View {
                         Label(clip.isSelect ? "Togli da buone" : "Segna come buona",
                               systemImage: clip.isSelect ? "star.slash" : "star")
                     }
-                    Button {
-                        shareClips([clip])
-                    } label: { Label("Condividi", systemImage: "square.and.arrow.up") }
-                    Button {
-                        saveToPhotos([clip])
-                    } label: { Label("Salva in Foto", systemImage: "photo.badge.arrow.down") }
+                    Button { exportURL = store.url(for: clip) } label: {
+                        Label("Condividi", systemImage: "square.and.arrow.up")
+                    }
+                    Button { saveToPhotos([clip]) } label: {
+                        Label("Salva in Foto", systemImage: "photo.badge.arrow.down")
+                    }
                     Divider()
                     Button(role: .destructive) {
                         store.deleteClip(clip.id, in: target)
@@ -139,42 +176,71 @@ struct SketchDetailView: View {
         }
     }
 
-    private var recordBar: some View {
-        HStack(spacing: 14) {
+    // MARK: Barra inferiore
+
+    private var bottomBar: some View {
+        Group {
             if isSelecting {
-                Button("Annulla") { isSelecting = false; selection.removeAll() }
-                Spacer()
-                Text("\(selection.count) selezionate").font(.footnote).foregroundStyle(.secondary)
-                Spacer()
-                Menu {
-                    Button { exportSelection() } label: { Label("Esporta .zip", systemImage: "square.and.arrow.up") }
-                    Button { saveToPhotos(selectedClips) } label: { Label("Salva in Foto", systemImage: "photo.badge.arrow.down") }
-                    Button { showMovePicker = true } label: { Label("Sposta in…", systemImage: "folder") }
-                    Divider()
-                    Button(role: .destructive) {
-                        for id in selection { store.deleteClip(id, in: target) }
-                        selection.removeAll(); isSelecting = false
-                    } label: { Label("Elimina", systemImage: "trash") }
-                } label: {
-                    Image(systemName: "ellipsis.circle.fill").font(.title2)
+                HStack(spacing: 12) {
+                    Button("Annulla") { isSelecting = false; selection.removeAll() }
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(Ink.dim)
+
+                    Spacer()
+                    Text("\(selection.count) selezionate").techFont(10).foregroundStyle(Ink.text)
+                    Spacer()
+
+                    Menu {
+                        Button { exportSelection() } label: { Label("Esporta .zip", systemImage: "square.and.arrow.up") }
+                        Button { saveToPhotos(selectedClips) } label: { Label("Salva in Foto", systemImage: "photo.badge.arrow.down") }
+                        Button { showMovePicker = true } label: { Label("Sposta in…", systemImage: "folder") }
+                        Divider()
+                        Button(role: .destructive) {
+                            for id in selection { store.deleteClip(id, in: target) }
+                            selection.removeAll(); isSelecting = false
+                        } label: { Label("Elimina", systemImage: "trash") }
+                    } label: {
+                        Image(systemName: "ellipsis.circle.fill")
+                            .font(.system(size: 26))
+                            .foregroundStyle(selection.isEmpty ? Ink.faint : Ink.accent)
+                    }
+                    .disabled(selection.isEmpty)
                 }
-                .disabled(selection.isEmpty)
+                .padding(.horizontal, 20)
+                .padding(.vertical, 14)
+                .background(.ultraThinMaterial)
             } else {
-                Button {
-                    showCamera = true
-                } label: {
-                    Label("Registra ciak \(sketch?.nextTake ?? 1)", systemImage: "record.circle.fill")
-                        .font(.headline)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 12)
+                HStack(spacing: 10) {
+                    Button {
+                        showCamera = true
+                    } label: {
+                        HStack(spacing: 8) {
+                            Circle().fill(Ink.live).frame(width: 10, height: 10)
+                            Text("Registra ciak \(sketch?.nextTake ?? 1)")
+                        }
+                    }
+                    .buttonStyle(AccentButtonStyle())
+
+                    Menu {
+                        Button { showPhotoImport = true } label: { Label("Importa da Foto", systemImage: "photo.on.rectangle") }
+                        Button { showFileImport = true } label: { Label("Importa da File", systemImage: "folder.badge.plus") }
+                    } label: {
+                        Image(systemName: "plus")
+                            .font(.system(size: 17, weight: .bold))
+                            .foregroundStyle(Ink.text)
+                            .frame(width: 50, height: 50)
+                            .card(radius: 14, fill: Ink.surfaceHigh)
+                    }
                 }
-                .buttonStyle(.borderedProminent)
-                .tint(.red)
+                .padding(.horizontal, 20)
+                .padding(.top, 8)
+                .padding(.bottom, 10)
+                .background(
+                    LinearGradient(colors: [Ink.bg.opacity(0), Ink.bg.opacity(0.92), Ink.bg],
+                                   startPoint: .top, endPoint: .bottom)
+                )
             }
         }
-        .padding(.horizontal)
-        .padding(.vertical, 10)
-        .background(.bar)
     }
 
     @ToolbarContentBuilder
@@ -194,49 +260,29 @@ struct SketchDetailView: View {
                 Button {
                     scriptDraft = sketch?.script ?? ""
                     editingScript = true
-                } label: { Label("Copione / note", systemImage: "text.alignleft") }
+                } label: { Label("Copione", systemImage: "text.alignleft") }
 
                 if let sketch {
                     Button {
                         store.updateSketch(target, isDone: !sketch.isDone)
                     } label: {
-                        Label(sketch.isDone ? "Riapri sketch" : "Segna come completato",
+                        Label(sketch.isDone ? "Riapri sketch" : "Segna completato",
                               systemImage: sketch.isDone ? "arrow.uturn.backward" : "checkmark.circle")
                     }
                 }
 
                 Divider()
 
-                Button { showPhotoImport = true } label: {
-                    Label("Importa da Foto", systemImage: "photo.on.rectangle")
-                }
-                Button { showFileImport = true } label: {
-                    Label("Importa da File", systemImage: "folder.badge.plus")
-                }
+                Button { showPhotoImport = true } label: { Label("Importa da Foto", systemImage: "photo.on.rectangle") }
+                Button { showFileImport = true } label: { Label("Importa da File", systemImage: "folder.badge.plus") }
 
                 Divider()
 
                 Button { exportAll() } label: { Label("Esporta tutto (.zip)", systemImage: "square.and.arrow.up") }
                 Button { exportSelects() } label: { Label("Esporta solo le buone", systemImage: "star") }
-            } label: { Image(systemName: "ellipsis.circle") }
-        }
-    }
-
-    private var scriptEditor: some View {
-        NavigationStack {
-            TextEditor(text: $scriptDraft)
-                .padding()
-                .navigationTitle("Copione")
-                .navigationBarTitleDisplayMode(.inline)
-                .toolbar {
-                    ToolbarItem(placement: .cancellationAction) { Button("Annulla") { editingScript = false } }
-                    ToolbarItem(placement: .confirmationAction) {
-                        Button("Salva") {
-                            store.updateSketch(target, script: scriptDraft)
-                            editingScript = false
-                        }
-                    }
-                }
+            } label: {
+                Image(systemName: "ellipsis").font(.system(size: 15, weight: .bold))
+            }
         }
     }
 
@@ -246,22 +292,16 @@ struct SketchDetailView: View {
         (sketch?.clips ?? []).filter { selection.contains($0.id) }
     }
 
-    private func shareClips(_ clips: [Clip]) {
-        let urls = clips.map { store.url(for: $0) }
-        guard let first = urls.first else { return }
-        exportURL = first
-    }
-
     private func saveToPhotos(_ clips: [Clip]) {
         let urls = clips.map { store.url(for: $0) }
         Task {
             do {
                 try await Exporter.saveToPhotoLibrary(urls)
-                statusMessage = urls.count == 1 ? "Video salvato in Foto." : "\(urls.count) video salvati in Foto."
+                message = urls.count == 1 ? "Video salvato in Foto." : "\(urls.count) video salvati in Foto."
                 isSelecting = false
                 selection.removeAll()
             } catch {
-                statusMessage = error.localizedDescription
+                message = error.localizedDescription
             }
         }
     }
@@ -271,7 +311,7 @@ struct SketchDetailView: View {
     private func exportSelects() {
         let selects = (sketch?.clips ?? []).filter(\.isSelect)
         if selects.isEmpty {
-            statusMessage = "Nessuna clip è segnata come buona. Tienile premute per marcarle."
+            message = "Nessuna clip è segnata come buona. Tienile premute per marcarle."
             return
         }
         export(clips: selects)
@@ -281,7 +321,7 @@ struct SketchDetailView: View {
 
     private func export(clips: [Clip]) {
         guard let sketch, !clips.isEmpty else {
-            statusMessage = "Non c'è nulla da esportare."
+            message = "Non c'è nulla da esportare."
             return
         }
         exporting = true
@@ -296,11 +336,13 @@ struct SketchDetailView: View {
                 selection.removeAll()
             } catch {
                 exporting = false
-                statusMessage = error.localizedDescription
+                message = error.localizedDescription
             }
         }
     }
 }
+
+// MARK: - Scheda clip
 
 struct ClipCard: View {
     let clip: Clip
@@ -308,57 +350,79 @@ struct ClipCard: View {
     let selected: Bool
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: 0) {
             ZStack(alignment: .topLeading) {
-                ClipThumbnail(clip: clip, url: url)
-                    .aspectRatio(16.0 / 9.0, contentMode: .fill)
-                    .frame(height: 96)
+                ClipThumbnail(clip: clip, url: url, cornerRadius: 0)
+                    .frame(height: 100)
+                    .frame(maxWidth: .infinity)
                     .clipped()
+                    .overlay(ScrimGradient())
 
-                HStack {
-                    Text("Ciak \(clip.take)")
-                        .font(.caption2.weight(.bold))
-                        .padding(.horizontal, 6).padding(.vertical, 3)
-                        .background(.black.opacity(0.6), in: Capsule())
+                HStack(alignment: .top) {
+                    Text("\(String(format: "%02d", clip.take))")
+                        .font(.system(size: 13, weight: .black, design: .monospaced))
                         .foregroundStyle(.white)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 3)
+                        .background(.black.opacity(0.55), in: RoundedRectangle(cornerRadius: 6))
+
                     Spacer()
+
                     if clip.isSelect {
                         Image(systemName: "star.fill")
-                            .font(.caption2)
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundStyle(Ink.bg)
                             .padding(5)
-                            .background(.yellow, in: Circle())
-                            .foregroundStyle(.black)
+                            .background(Ink.gold, in: Circle())
+                    }
+                    if clip.isImported {
+                        Image(systemName: "square.and.arrow.down")
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundStyle(.white)
+                            .padding(5)
+                            .background(.black.opacity(0.55), in: Circle())
                     }
                 }
-                .padding(6)
-
-                if selected {
-                    RoundedRectangle(cornerRadius: 10)
-                        .strokeBorder(Color.accentColor, lineWidth: 3)
-                }
+                .padding(8)
             }
             .overlay(alignment: .bottomTrailing) {
                 Text(clip.durationLabel)
-                    .font(.caption2.monospacedDigit())
-                    .padding(.horizontal, 5).padding(.vertical, 2)
-                    .background(.black.opacity(0.6), in: RoundedRectangle(cornerRadius: 4))
+                    .font(.system(size: 11, weight: .bold, design: .monospaced))
                     .foregroundStyle(.white)
-                    .padding(6)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
+                    .background(.black.opacity(0.5), in: RoundedRectangle(cornerRadius: 5))
+                    .padding(8)
             }
 
-            Text(clip.technicalSummary)
-                .font(.caption2)
-                .foregroundStyle(.secondary)
-                .lineLimit(1)
-            if !clip.note.isEmpty {
-                Text(clip.note).font(.caption2).lineLimit(2)
+            VStack(alignment: .leading, spacing: 3) {
+                Text(clip.technicalSummary)
+                    .techFont(8.5)
+                    .foregroundStyle(Ink.faint)
+                    .lineLimit(1)
+                if !clip.note.isEmpty {
+                    Text(clip.note)
+                        .font(.system(size: 11))
+                        .foregroundStyle(Ink.dim)
+                        .lineLimit(2)
+                        .multilineTextAlignment(.leading)
+                }
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(9)
         }
-        .frame(height: 150, alignment: .top)
+        .background(Ink.surface)
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .strokeBorder(selected ? Ink.accent : (clip.isSelect ? Ink.gold.opacity(0.5) : Ink.stroke),
+                              lineWidth: selected ? 2 : 1)
+        )
     }
 }
 
-/// Scelta della destinazione per spostare una o più clip.
+// MARK: - Scelta della destinazione
+
 struct MoveClipsView: View {
     let source: RecordingTarget
     let clipIDs: [UUID]
@@ -369,34 +433,53 @@ struct MoveClipsView: View {
 
     var body: some View {
         NavigationStack {
-            List {
-                ForEach(store.projects.filter { !$0.isArchived }) { project in
-                    Section(project.name) {
-                        ForEach(project.sketches) { sketch in
-                            let destination = RecordingTarget(projectID: project.id, sketchID: sketch.id)
-                            Button {
-                                for id in clipIDs { store.moveClip(id, from: source, to: destination) }
-                                onDone()
-                                dismiss()
-                            } label: {
-                                HStack {
-                                    Text(sketch.title)
-                                    Spacer()
-                                    if destination == source {
-                                        Text("attuale").font(.caption).foregroundStyle(.secondary)
+            ZStack {
+                Ink.bg.ignoresSafeArea()
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 18) {
+                        ForEach(store.projects.filter { !$0.isArchived }) { project in
+                            VStack(alignment: .leading, spacing: 8) {
+                                SectionHeader(title: project.name)
+                                ForEach(project.sketches) { sketch in
+                                    let destination = RecordingTarget(projectID: project.id, sketchID: sketch.id)
+                                    Button {
+                                        for id in clipIDs { store.moveClip(id, from: source, to: destination) }
+                                        onDone()
+                                        dismiss()
+                                    } label: {
+                                        HStack {
+                                            Text(sketch.title)
+                                                .font(.system(size: 15, weight: .medium))
+                                                .foregroundStyle(destination == source ? Ink.faint : Ink.text)
+                                            Spacer()
+                                            if destination == source {
+                                                Text("attuale").techFont(9).foregroundStyle(Ink.faint)
+                                            } else {
+                                                Image(systemName: "arrow.right")
+                                                    .font(.system(size: 12, weight: .bold))
+                                                    .foregroundStyle(Ink.faint)
+                                            }
+                                        }
+                                        .padding(14)
+                                        .card(radius: 14)
                                     }
+                                    .buttonStyle(.plain)
+                                    .disabled(destination == source)
                                 }
                             }
-                            .disabled(destination == source)
                         }
                     }
+                    .padding(20)
                 }
+                .scrollIndicators(.hidden)
             }
             .navigationTitle("Sposta in")
             .navigationBarTitleDisplayMode(.inline)
+            .darkNavigationBar()
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Annulla") { dismiss() } }
             }
         }
+        .tint(Ink.accent)
     }
 }
