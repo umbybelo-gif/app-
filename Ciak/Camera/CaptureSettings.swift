@@ -109,7 +109,7 @@ struct CaptureSettings: Codable, Equatable {
 
     func save() {
         guard let data = try? JSONEncoder().encode(self) else { return }
-        UserDefaults.standard.set(data, forKey: storageKey)
+        UserDefaults.standard.set(data, forKey: Self.storageKey)
     }
 
     var resolutionLabel: String {
