@@ -92,6 +92,8 @@ struct ClipDetailView: View {
                     Divider()
                     infoRow("Obiettivo", clip.lens.isEmpty ? "—" : clip.lens)
                     Divider()
+                    infoRow("Origine", clip.originLabel)
+                    Divider()
                     infoRow("Dimensione", clip.sizeLabel)
                     Divider()
                     infoRow("Girato il", Formatters.date.string(from: clip.createdAt))

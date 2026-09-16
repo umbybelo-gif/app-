@@ -77,6 +77,7 @@ final class CameraController: NSObject, AVCaptureFileOutputRecordingDelegate {
     @ObservationIgnored private var videoInput: AVCaptureDeviceInput?
     @ObservationIgnored private var audioInput: AVCaptureDeviceInput?
     @ObservationIgnored private var isConfigured = false
+    @ObservationIgnored private var configurationFailed = false
     @ObservationIgnored private var rotationCoordinator: AVCaptureDevice.RotationCoordinator?
     @ObservationIgnored private var rotationObservers: [NSKeyValueObservation] = []
     @ObservationIgnored private var captureRotationAngle: CGFloat = 90
@@ -102,6 +103,12 @@ final class CameraController: NSObject, AVCaptureFileOutputRecordingDelegate {
     // MARK: Permessi
 
     func requestPermissionsAndStart() {
+        // Sul Simulatore non c'è nulla da autorizzare: evitiamo un permesso inutile
+        // e diciamo subito come stanno le cose.
+        if Self.isSimulator {
+            status = .failed(Self.noCameraReason)
+            return
+        }
         Task {
             let video = await Self.ensureAuthorization(for: .video)
             guard video else {
@@ -131,6 +138,9 @@ final class CameraController: NSObject, AVCaptureFileOutputRecordingDelegate {
                 configureSession()
                 isConfigured = true
             }
+            // Senza fotocamera la sessione partirebbe comunque, a vuoto:
+            // meglio lasciare visibile l'errore già registrato.
+            guard !configurationFailed else { return }
             if !session.isRunning { session.startRunning() }
             let running = session.isRunning
             DispatchQueue.main.async {
@@ -156,7 +166,8 @@ final class CameraController: NSObject, AVCaptureFileOutputRecordingDelegate {
 
         guard let camera = Self.bestCamera(front: false) else {
             session.commitConfiguration()
-            DispatchQueue.main.async { self.status = .failed("Nessuna fotocamera disponibile.") }
+            configurationFailed = true
+            DispatchQueue.main.async { self.status = .failed(Self.noCameraReason) }
             return
         }
 
@@ -167,7 +178,10 @@ final class CameraController: NSObject, AVCaptureFileOutputRecordingDelegate {
             videoInput = input
         } catch {
             session.commitConfiguration()
-            DispatchQueue.main.async { self.status = .failed("Fotocamera non disponibile: \(error.localizedDescription)") }
+            configurationFailed = true
+            DispatchQueue.main.async {
+                self.status = .failed("Fotocamera non disponibile: \(error.localizedDescription)")
+            }
             return
         }
 
@@ -229,6 +243,22 @@ final class CameraController: NSObject, AVCaptureFileOutputRecordingDelegate {
            (input.value(forKey: "isWindNoiseRemovalSupported") as? Bool) == true {
             input.setValue(settings.windNoiseRemoval, forKey: "windNoiseRemovalEnabled")
         }
+    }
+
+    /// Sul Simulatore non esiste hardware di acquisizione: va detto chiaramente
+    /// invece di lasciare uno schermo nero.
+    static var isSimulator: Bool {
+        #if targetEnvironment(simulator)
+        return true
+        #else
+        return false
+        #endif
+    }
+
+    static var noCameraReason: String {
+        isSimulator
+            ? "Il Simulatore di iOS non ha una fotocamera: per provare la ripresa serve un iPhone vero. Tutto il resto dell'app funziona, e qui puoi aggiungere video importandoli."
+            : "Nessuna fotocamera disponibile su questo dispositivo."
     }
 
     // MARK: Scelta della fotocamera

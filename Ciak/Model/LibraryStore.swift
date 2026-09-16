@@ -151,7 +151,8 @@ final class LibraryStore {
 
     /// Registra su disco una clip appena girata leggendone i metadati reali dal file.
     @MainActor
-    func addClip(fileURL: URL, to target: RecordingTarget, metadata: CaptureMetadata) async {
+    func addClip(fileURL: URL, to target: RecordingTarget,
+                 metadata: CaptureMetadata, isImported: Bool = false) async {
         guard let (p, s) = indexes(for: target) else { return }
 
         let asset = AVURLAsset(url: fileURL)
@@ -181,10 +182,28 @@ final class LibraryStore {
                         stabilization: metadata.stabilization,
                         lens: metadata.lens,
                         fileSize: bytes,
-                        take: projects[p].sketches[s].nextTake)
+                        take: projects[p].sketches[s].nextTake,
+                        isImported: isImported)
 
         projects[p].sketches[s].clips.append(clip)
         save()
+    }
+
+    /// Aggiunge allo sketch un video già esistente (da Foto o da File),
+    /// copiandolo nell'archivio dell'app così resta disponibile anche se l'originale sparisce.
+    @MainActor
+    func importVideo(from sourceURL: URL, to target: RecordingTarget,
+                     securityScoped: Bool = false) async throws {
+        var accessing = false
+        if securityScoped { accessing = sourceURL.startAccessingSecurityScopedResource() }
+        defer { if accessing { sourceURL.stopAccessingSecurityScopedResource() } }
+
+        let ext = sourceURL.pathExtension.isEmpty ? "mov" : sourceURL.pathExtension
+        let destination = newRecordingURL(extension: ext)
+        try FileManager.default.copyItem(at: sourceURL, to: destination)
+
+        let metadata = await CaptureMetadata.read(from: destination)
+        await addClip(fileURL: destination, to: target, metadata: metadata, isImported: true)
     }
 
     func updateClip(_ clipID: UUID, in target: RecordingTarget,

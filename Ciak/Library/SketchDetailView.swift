@@ -15,6 +15,8 @@ struct SketchDetailView: View {
     @State private var exporting = false
     @State private var statusMessage: String?
     @State private var showMovePicker = false
+    @State private var showPhotoImport = false
+    @State private var showFileImport = false
 
     private var sketch: Sketch? { store.sketch(target) }
     private var project: Project? { store.project(target.projectID) }
@@ -54,6 +56,7 @@ struct SketchDetailView: View {
             Button("OK", role: .cancel) {}
         } message: { Text(statusMessage ?? "") }
         .overlay { if exporting { ProgressOverlay(text: "Preparo i file…") } }
+        .videoImporter(target: target, showPhotos: $showPhotoImport, showFiles: $showFileImport)
     }
 
     private func content(_ sketch: Sketch) -> some View {
@@ -76,11 +79,15 @@ struct SketchDetailView: View {
                 }
 
                 if sketch.clips.isEmpty {
-                    EmptyStateView(icon: "video.badge.plus",
-                                   title: "Nessun ciak",
-                                   message: "Premi il pulsante rosso per girare la prima ripresa di questo sketch.",
-                                   actionTitle: "Registra ora") { showCamera = true }
-                        .padding(.top, 40)
+                    VStack(spacing: 4) {
+                        EmptyStateView(icon: "video.badge.plus",
+                                       title: "Nessun ciak",
+                                       message: "Premi il pulsante rosso per girare la prima ripresa, oppure aggiungi un video che hai già.",
+                                       actionTitle: "Registra ora") { showCamera = true }
+                        Button("Importa un video") { showPhotoImport = true }
+                            .font(.subheadline)
+                    }
+                    .padding(.top, 40)
                 } else {
                     LazyVGrid(columns: columns, spacing: 12) {
                         ForEach(sketch.clips) { clip in
@@ -195,6 +202,15 @@ struct SketchDetailView: View {
                         Label(sketch.isDone ? "Riapri sketch" : "Segna come completato",
                               systemImage: sketch.isDone ? "arrow.uturn.backward" : "checkmark.circle")
                     }
+                }
+
+                Divider()
+
+                Button { showPhotoImport = true } label: {
+                    Label("Importa da Foto", systemImage: "photo.on.rectangle")
+                }
+                Button { showFileImport = true } label: {
+                    Label("Importa da File", systemImage: "folder.badge.plus")
                 }
 
                 Divider()

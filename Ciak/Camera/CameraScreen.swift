@@ -1,4 +1,5 @@
 import AVFoundation
+import PhotosUI
 import SwiftUI
 
 struct CameraScreen: View {
@@ -15,6 +16,8 @@ struct CameraScreen: View {
     @State private var showManualControls = false
     @State private var savingClip = false
     @State private var errorMessage: String?
+    @State private var showPhotoImport = false
+    @State private var showFileImport = false
 
     private var sketch: Sketch? { store.sketch(target) }
     private var project: Project? { store.project(target.projectID) }
@@ -41,7 +44,14 @@ struct CameraScreen: View {
             }
             .padding(.horizontal, 16)
 
-            if case .denied(let reason) = camera.status { permissionOverlay(reason) }
+            switch camera.status {
+            case .denied(let reason):
+                unavailableOverlay(reason, showSettingsButton: true)
+            case .failed(let reason):
+                unavailableOverlay(reason, showSettingsButton: false)
+            default:
+                EmptyView()
+            }
         }
         .statusBarHidden()
         .preferredColorScheme(.dark)
@@ -69,6 +79,9 @@ struct CameraScreen: View {
         }
         .onChange(of: camera.message) { _, new in
             if let new { errorMessage = new; camera.message = nil }
+        }
+        .videoImporter(target: target, showPhotos: $showPhotoImport, showFiles: $showFileImport) { imported in
+            if imported > 0 { dismiss() }
         }
     }
 
@@ -322,22 +335,57 @@ struct CameraScreen: View {
         }
     }
 
-    private func permissionOverlay(_ reason: String) -> some View {
-        VStack(spacing: 16) {
-            Image(systemName: "camera.metering.unknown").font(.largeTitle)
-            Text(reason).multilineTextAlignment(.center)
-            Button("Apri Impostazioni") {
-                if let url = URL(string: UIApplication.openSettingsURLString) {
-                    UIApplication.shared.open(url)
+    /// Mostrata quando la fotocamera non è utilizzabile: permesso negato
+    /// oppure hardware assente (è il caso del Simulatore).
+    private func unavailableOverlay(_ reason: String, showSettingsButton: Bool) -> some View {
+        VStack(spacing: 18) {
+            Image(systemName: showSettingsButton ? "camera.metering.unknown" : "iphone.gen3.slash")
+                .font(.system(size: 42, weight: .light))
+
+            Text(showSettingsButton ? "Accesso alla fotocamera" : "Fotocamera non disponibile")
+                .font(.headline)
+
+            Text(reason)
+                .font(.subheadline)
+                .foregroundStyle(.white.opacity(0.75))
+                .multilineTextAlignment(.center)
+                .frame(maxWidth: 420)
+
+            VStack(spacing: 10) {
+                if showSettingsButton {
+                    Button("Apri Impostazioni") {
+                        if let url = URL(string: UIApplication.openSettingsURLString) {
+                            UIApplication.shared.open(url)
+                        }
+                    }
+                    .buttonStyle(.borderedProminent)
+                } else {
+                    Button {
+                        showPhotoImport = true
+                    } label: {
+                        Label("Importa da Foto", systemImage: "photo.on.rectangle")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.borderedProminent)
+
+                    Button {
+                        showFileImport = true
+                    } label: {
+                        Label("Importa da File", systemImage: "folder")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.bordered)
                 }
+
+                Button("Chiudi") { dismiss() }
+                    .padding(.top, 4)
             }
-            .buttonStyle(.borderedProminent)
-            Button("Chiudi") { dismiss() }
+            .frame(maxWidth: 320)
         }
         .padding(32)
         .foregroundStyle(.white)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(.black.opacity(0.9))
+        .background(.black.opacity(0.92))
         .ignoresSafeArea()
     }
 }

@@ -51,6 +51,37 @@ Per questo il progetto è un'app SwiftUI + AVFoundation.
 
 ---
 
+## Provarla subito nel Simulatore (senza iPhone)
+
+Apri `Ciak.xcodeproj`, scegli un simulatore (per esempio *iPhone 17 Pro*) nella barra in alto
+e premi **▶︎ Run**. Non serve firmare nulla né collegare niente.
+
+**Cosa funziona nel Simulatore**
+
+- Password dell'app, blocco automatico, schermo oscurato.
+- **Face ID simulato**: menu **Features › Face ID › Enrolled**, poi allo sblocco
+  **Features › Face ID › Matching Face** (per provare il rifiuto, *Non-matching Face*).
+- Progetti, sketch, ciak, note, copione, stella "buona", spostamenti, ricerca.
+- Miniature, riproduzione, esportazione `.zip`, salvataggio in Foto, condivisione.
+
+**Cosa NON funziona nel Simulatore**
+
+- **La ripresa.** Il Simulatore non ha hardware fotocamera: AVFoundation non trova
+  nessun dispositivo. L'app te lo dice esplicitamente invece di mostrare uno schermo nero.
+  Stabilizzazione, 4K, ProRes, HDR e controlli manuali si possono provare **solo su un iPhone vero**.
+
+**Come riempirla comunque di video**
+
+Nella schermata "Fotocamera non disponibile", e nel menu ⋯ di ogni sketch, trovi
+**Importa da Foto** e **Importa da File**: aggiungono al ciak un video che hai già,
+copiandolo nell'archivio dell'app esattamente come una registrazione.
+Nel dettaglio della clip il campo *Origine* distingue "Girato con Ciak" da "Importato".
+
+Per avere qualche video nel Simulatore basta **trascinare un file `.mov` o `.mp4`
+sulla finestra del Simulatore**: finisce nell'app Foto e da lì lo importi.
+
+---
+
 ## Cosa fa
 
 ### Organizzazione
@@ -76,6 +107,7 @@ Per questo il progetto è un'app SwiftUI + AVFoundation.
 ### Esportazione
 - **Condividi** una clip singola (AirDrop, File, Mail, WhatsApp…).
 - **Salva in Foto** una o più clip.
+- **Importa** video già esistenti da Foto o da File, direttamente dentro uno sketch.
 - **Esporta un intero progetto o sketch in .zip**, con i file rinominati in modo leggibile
   (`Sketch_Ciak-03_BUONA.mov`), le cartelle divise per sketch e un `NOTE.txt` con durate,
   dati tecnici e le tue annotazioni.

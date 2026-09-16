@@ -20,6 +20,13 @@ struct Clip: Identifiable, Codable, Hashable {
     /// Ciak buono: la ripresa che userai nel montaggio.
     var isSelect: Bool = false
     var note: String = ""
+    /// Vero per i video aggiunti da Foto o da File invece che girati nell'app.
+    var isImported: Bool = false
+
+    enum CodingKeys: String, CodingKey {
+        case id, fileName, createdAt, duration, width, height, fps
+        case codec, colorMode, stabilization, lens, fileSize, take, isSelect, note, isImported
+    }
 
     var resolutionLabel: String {
         guard width > 0, height > 0 else { return "—" }
@@ -32,6 +39,8 @@ struct Clip: Identifiable, Codable, Hashable {
         }
     }
 
+    var originLabel: String { isImported ? "Importato" : "Girato con Ciak" }
+
     var durationLabel: String { Formatters.duration(duration) }
     var sizeLabel: String { Formatters.bytes(fileSize) }
 
@@ -42,6 +51,30 @@ struct Clip: Identifiable, Codable, Hashable {
         if !codec.isEmpty { parts.append(codec) }
         if !colorMode.isEmpty && colorMode != "SDR" { parts.append(colorMode) }
         return parts.joined(separator: " · ")
+    }
+}
+
+extension Clip {
+    /// Decodifica tollerante: un archivio scritto da una versione precedente
+    /// dell'app resta leggibile anche quando si aggiungono nuovi campi.
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decodeIfPresent(UUID.self, forKey: .id) ?? UUID()
+        fileName = try c.decode(String.self, forKey: .fileName)
+        createdAt = try c.decodeIfPresent(Date.self, forKey: .createdAt) ?? Date()
+        duration = try c.decodeIfPresent(Double.self, forKey: .duration) ?? 0
+        width = try c.decodeIfPresent(Int.self, forKey: .width) ?? 0
+        height = try c.decodeIfPresent(Int.self, forKey: .height) ?? 0
+        fps = try c.decodeIfPresent(Double.self, forKey: .fps) ?? 0
+        codec = try c.decodeIfPresent(String.self, forKey: .codec) ?? ""
+        colorMode = try c.decodeIfPresent(String.self, forKey: .colorMode) ?? ""
+        stabilization = try c.decodeIfPresent(String.self, forKey: .stabilization) ?? ""
+        lens = try c.decodeIfPresent(String.self, forKey: .lens) ?? ""
+        fileSize = try c.decodeIfPresent(Int64.self, forKey: .fileSize) ?? 0
+        take = try c.decodeIfPresent(Int.self, forKey: .take) ?? 1
+        isSelect = try c.decodeIfPresent(Bool.self, forKey: .isSelect) ?? false
+        note = try c.decodeIfPresent(String.self, forKey: .note) ?? ""
+        isImported = try c.decodeIfPresent(Bool.self, forKey: .isImported) ?? false
     }
 }
 
