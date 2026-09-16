@@ -1,5 +1,6 @@
 import CommonCrypto
 import Foundation
+import Security
 
 /// La password non viene mai salvata: si conserva solo un hash PBKDF2-SHA256 con sale casuale.
 struct StoredCredential: Codable {

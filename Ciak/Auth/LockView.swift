@@ -1,3 +1,4 @@
+import Foundation
 import SwiftUI
 
 /// Schermata di sblocco: biometria se disponibile, altrimenti password.

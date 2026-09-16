@@ -122,6 +122,36 @@ struct CaptureSettings: Codable, Equatable {
     }
 }
 
+/// Una risoluzione selezionabile. Tipo nostro invece di estendere `CMVideoDimensions`,
+/// che è un tipo importato dal C e non va conformato a protocolli Swift.
+struct Resolution: Hashable, Identifiable {
+    let width: Int
+    let height: Int
+
+    var id: String { "\(width)x\(height)" }
+
+    init(width: Int, height: Int) {
+        self.width = width
+        self.height = height
+    }
+
+    init(_ dimensions: CMVideoDimensions) {
+        self.init(width: Int(dimensions.width), height: Int(dimensions.height))
+    }
+
+    var pixels: Int { width * height }
+
+    var label: String {
+        let long = max(width, height), short = min(width, height)
+        switch (long, short) {
+        case (3840, 2160): return "4K UHD (3840×2160)"
+        case (1920, 1080): return "Full HD (1920×1080)"
+        case (1280, 720): return "HD (1280×720)"
+        default: return "\(long)×\(short)"
+        }
+    }
+}
+
 // MARK: - Utility sui formati
 
 extension AVCaptureDevice.Format {

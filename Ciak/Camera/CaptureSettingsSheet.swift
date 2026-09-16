@@ -12,8 +12,8 @@ struct CaptureSettingsSheet: View {
             Form {
                 Section("Risoluzione") {
                     Picker("Risoluzione", selection: resolutionBinding) {
-                        ForEach(camera.availableResolutions, id: \.self) { dims in
-                            Text(label(for: dims)).tag(key(dims))
+                        ForEach(camera.availableResolutions) { resolution in
+                            Text(resolution.label).tag(resolution.id)
                         }
                     }
                     .pickerStyle(.menu)
@@ -120,18 +120,6 @@ struct CaptureSettingsSheet: View {
         }
     }
 
-    private func label(for dims: CMVideoDimensions) -> String {
-        let long = max(dims.width, dims.height), short = min(dims.width, dims.height)
-        switch (long, short) {
-        case (3840, 2160): return "4K UHD (3840×2160)"
-        case (1920, 1080): return "Full HD (1920×1080)"
-        case (1280, 720): return "HD (1280×720)"
-        default: return "\(long)×\(short)"
-        }
-    }
-
-    private func key(_ dims: CMVideoDimensions) -> String { "\(dims.width)x\(dims.height)" }
-
     // MARK: Binding che riapplicano il formato
 
     private var resolutionBinding: Binding<String> {
@@ -179,15 +167,5 @@ struct CaptureSettingsSheet: View {
     private func plainBinding(_ keyPath: WritableKeyPath<CaptureSettings, Bool>) -> Binding<Bool> {
         Binding(get: { camera.settings[keyPath: keyPath] },
                 set: { value in camera.updateSettings(reapply: false) { $0[keyPath: keyPath] = value } })
-    }
-}
-
-extension CMVideoDimensions: Hashable {
-    public static func == (lhs: CMVideoDimensions, rhs: CMVideoDimensions) -> Bool {
-        lhs.width == rhs.width && lhs.height == rhs.height
-    }
-    public func hash(into hasher: inout Hasher) {
-        hasher.combine(width)
-        hasher.combine(height)
     }
 }

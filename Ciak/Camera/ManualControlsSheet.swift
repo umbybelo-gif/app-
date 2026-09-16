@@ -1,3 +1,4 @@
+import Foundation
 import SwiftUI
 
 /// Controlli manuali: fuoco, esposizione, ISO, otturatore, temperatura colore.

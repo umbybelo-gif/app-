@@ -1,4 +1,5 @@
 import AVKit
+import Foundation
 import SwiftUI
 
 struct ClipDetailView: View {

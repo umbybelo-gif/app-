@@ -1,6 +1,7 @@
 import AVFoundation
 import PhotosUI
 import SwiftUI
+import UIKit
 
 struct CameraScreen: View {
     let target: RecordingTarget
@@ -91,7 +92,7 @@ struct CameraScreen: View {
         GeometryReader { geo in
             CameraPreview(controller: camera)
                 .contentShape(Rectangle())
-                .onTapGesture { location in
+                .onTapGesture { (location: CGPoint) in
                     camera.focusAndExpose(atPreviewPoint: location)
                     focusPoint = location
                     focusToken += 1

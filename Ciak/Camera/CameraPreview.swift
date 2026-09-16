@@ -1,5 +1,6 @@
 import AVFoundation
 import SwiftUI
+import UIKit
 
 /// Ponte fra il layer di anteprima di AVFoundation e SwiftUI.
 struct CameraPreview: UIViewRepresentable {

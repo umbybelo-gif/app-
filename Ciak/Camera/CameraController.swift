@@ -48,7 +48,7 @@ final class CameraController: NSObject, AVCaptureFileOutputRecordingDelegate {
     var isWhiteBalanceLocked = false
     var colorTemperature: Float = 5200
 
-    var availableResolutions: [CMVideoDimensions] = []
+    var availableResolutions: [Resolution] = []
     var availableFrameRates: [Double] = []
     var supportsProRes = false
     var supportsAppleLog = false
@@ -444,13 +444,12 @@ final class CameraController: NSObject, AVCaptureFileOutputRecordingDelegate {
         let hdr = formats.contains { $0.isTenBit && !$0.isProResFormat }
 
         var seen = Set<String>()
-        var resolutions: [CMVideoDimensions] = []
+        var resolutions: [Resolution] = []
         for format in formats {
-            let d = format.dimensions
-            let key = "\(d.width)x\(d.height)"
-            if seen.insert(key).inserted { resolutions.append(d) }
+            let resolution = Resolution(format.dimensions)
+            if seen.insert(resolution.id).inserted { resolutions.append(resolution) }
         }
-        resolutions.sort { Int($0.width) * Int($0.height) > Int($1.width) * Int($1.height) }
+        resolutions.sort { $0.pixels > $1.pixels }
 
         let torch = device.hasTorch
         let front = device.position == .front

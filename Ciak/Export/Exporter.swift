@@ -1,6 +1,7 @@
 import AVFoundation
 import Foundation
 import Photos
+import SwiftUI
 import UIKit
 
 enum ExportError: LocalizedError {
