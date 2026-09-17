@@ -39,7 +39,7 @@ struct SettingsView: View {
 
                     Button("Cambia password") { showChangePassword = true }
                     Button("Blocca adesso") {
-                        auth.lock()
+                        auth.lock(manual: true)
                         dismiss()
                     }
                 }

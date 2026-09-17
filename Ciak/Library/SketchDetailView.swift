@@ -141,7 +141,7 @@ struct SketchDetailView: View {
 
     private func clipCell(_ clip: Clip) -> some View {
         let selected = selection.contains(clip.id)
-        return Group {
+        return ZStack(alignment: .topTrailing) {
             if isSelecting {
                 ClipCard(clip: clip, url: store.url(for: clip), selected: selected)
                     .onTapGesture {
@@ -156,7 +156,7 @@ struct SketchDetailView: View {
                 .buttonStyle(.plain)
                 .contextMenu {
                     Button {
-                        store.updateClip(clip.id, in: target, isSelect: !clip.isSelect)
+                        toggleSelect(clip)
                     } label: {
                         Label(clip.isSelect ? "Togli da buone" : "Segna come buona",
                               systemImage: clip.isSelect ? "star.slash" : "star")
@@ -173,7 +173,40 @@ struct SketchDetailView: View {
                     } label: { Label("Elimina", systemImage: "trash") }
                 }
             }
+
+            // Marcare una ripresa come buona deve costare un tocco, non un menu.
+            badge(for: clip, selected: selected)
+                .padding(7)
         }
+    }
+
+    private func badge(for clip: Clip, selected: Bool) -> some View {
+        Group {
+            if isSelecting {
+                Image(systemName: selected ? "checkmark.circle.fill" : "circle")
+                    .font(.system(size: 20, weight: .semibold))
+                    .foregroundStyle(selected ? Ink.accent : .white.opacity(0.7))
+                    .background(Circle().fill(.black.opacity(selected ? 0 : 0.35)))
+                    .allowsHitTesting(false)
+            } else {
+                Button {
+                    toggleSelect(clip)
+                } label: {
+                    Image(systemName: clip.isSelect ? "star.fill" : "star")
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundStyle(clip.isSelect ? Ink.bg : .white)
+                        .frame(width: 32, height: 32)
+                        .background(Circle().fill(clip.isSelect ? Ink.gold : .black.opacity(0.45)))
+                        .overlay(Circle().strokeBorder(.white.opacity(clip.isSelect ? 0 : 0.25), lineWidth: 1))
+                        .contentShape(Circle())
+                }
+                .buttonStyle(.plain)
+            }
+        }
+    }
+
+    private func toggleSelect(_ clip: Clip) {
+        store.updateClip(clip.id, in: target, isSelect: !clip.isSelect)
     }
 
     // MARK: Barra inferiore
@@ -352,29 +385,19 @@ struct ClipCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             ZStack(alignment: .topLeading) {
+                // Il riquadro prende la forma del girato: i verticali restano verticali.
                 ClipThumbnail(clip: clip, url: url, cornerRadius: 0)
-                    .frame(height: 100)
-                    .frame(maxWidth: .infinity)
-                    .clipped()
+                    .aspectRatio(clip.aspectRatio, contentMode: .fit)
                     .overlay(ScrimGradient())
 
-                HStack(alignment: .top) {
-                    Text("\(String(format: "%02d", clip.take))")
+                HStack(spacing: 5) {
+                    Text(String(format: "%02d", clip.take))
                         .font(.system(size: 13, weight: .black, design: .monospaced))
                         .foregroundStyle(.white)
                         .padding(.horizontal, 6)
                         .padding(.vertical, 3)
                         .background(.black.opacity(0.55), in: RoundedRectangle(cornerRadius: 6))
 
-                    Spacer()
-
-                    if clip.isSelect {
-                        Image(systemName: "star.fill")
-                            .font(.system(size: 10, weight: .bold))
-                            .foregroundStyle(Ink.bg)
-                            .padding(5)
-                            .background(Ink.gold, in: Circle())
-                    }
                     if clip.isImported {
                         Image(systemName: "square.and.arrow.down")
                             .font(.system(size: 10, weight: .bold))
@@ -415,8 +438,8 @@ struct ClipCard: View {
         .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .strokeBorder(selected ? Ink.accent : (clip.isSelect ? Ink.gold.opacity(0.5) : Ink.stroke),
-                              lineWidth: selected ? 2 : 1)
+                .strokeBorder(selected ? Ink.accent : (clip.isSelect ? Ink.gold.opacity(0.55) : Ink.stroke),
+                              lineWidth: selected || clip.isSelect ? 2 : 1)
         )
     }
 }

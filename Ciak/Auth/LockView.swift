@@ -82,7 +82,10 @@ struct LockView: View {
             }
         }
         .animation(.snappy, value: auth.errorMessage)
-        .task { await auth.unlockWithBiometrics() }
+        .task {
+            // Se sei appena uscito tu premendo il lucchetto, non ti riapro l'app in faccia.
+            if auth.offersBiometricsOnAppear { await auth.unlockWithBiometrics() }
+        }
     }
 
     /// Piccola oscillazione dopo una password sbagliata.

@@ -1,3 +1,4 @@
+import CoreGraphics
 import Foundation
 
 // MARK: - Clip
@@ -40,6 +41,18 @@ struct Clip: Identifiable, Codable, Hashable {
     }
 
     var originLabel: String { isImported ? "Importato" : "Girato con Ciak" }
+
+    /// Proporzione reale del girato, limitata perché un formato estremo
+    /// non sfondi i riquadri. Serve a mostrare i verticali come verticali.
+    var aspectRatio: CGFloat {
+        guard width > 0, height > 0 else { return 16.0 / 9.0 }
+        return min(max(CGFloat(width) / CGFloat(height), 0.5), 2.0)
+    }
+
+    var isPortrait: Bool { height > width }
+
+    /// Larghezza di una copertina di altezza fissa, coerente con il girato.
+    func coverWidth(height: CGFloat) -> CGFloat { (height * aspectRatio).rounded() }
 
     var durationLabel: String { Formatters.duration(duration) }
     var sizeLabel: String { Formatters.bytes(fileSize) }

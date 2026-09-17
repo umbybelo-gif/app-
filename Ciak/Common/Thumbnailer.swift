@@ -50,22 +50,27 @@ struct ClipThumbnail: View {
     @State private var image: UIImage?
 
     var body: some View {
-        ZStack {
-            if let image {
-                Image(uiImage: image)
-                    .resizable()
-                    .scaledToFill()
-            } else {
-                Rectangle()
-                    .fill(Ink.surfaceHigh)
-                    .overlay(
-                        Image(systemName: "film")
-                            .font(.system(size: 14))
-                            .foregroundStyle(Ink.faint)
-                    )
+        // Il GeometryReader dà alla miniatura la dimensione reale del contenitore:
+        // senza, `scaledToFill` veniva ritagliato alla misura sbagliata e debordava.
+        GeometryReader { geo in
+            ZStack {
+                Rectangle().fill(Ink.surfaceHigh)
+
+                if let image {
+                    Image(uiImage: image)
+                        .resizable()
+                        .scaledToFill()
+                        .frame(width: geo.size.width, height: geo.size.height)
+                } else {
+                    Image(systemName: "film")
+                        .font(.system(size: min(geo.size.width, geo.size.height) * 0.28))
+                        .foregroundStyle(Ink.faint)
+                }
             }
+            .frame(width: geo.size.width, height: geo.size.height)
+            .clipped()
         }
-        .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
+        .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
         .task(id: clip.id) {
             image = await Thumbnailer.thumbnail(for: url, clipID: clip.id)
         }

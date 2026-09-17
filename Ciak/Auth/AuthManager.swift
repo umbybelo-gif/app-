@@ -39,6 +39,10 @@ final class AuthManager {
     }
 
     private var backgroundedAt: Date?
+
+    /// Dopo un blocco richiesto a mano non si propone subito la biometria:
+    /// il riconoscimento sarebbe immediato e il blocco sembrerebbe non funzionare.
+    private(set) var offersBiometricsOnAppear = true
     private static let credentialAccount = "app-password"
 
     private enum Keys {
@@ -130,6 +134,7 @@ final class AuthManager {
         if PasswordHasher.verify(password: password, against: credential) {
             failedAttempts = 0
             errorMessage = nil
+            offersBiometricsOnAppear = true
             phase = .unlocked
             return true
         }
@@ -149,6 +154,7 @@ final class AuthManager {
             if ok {
                 failedAttempts = 0
                 errorMessage = nil
+                offersBiometricsOnAppear = true
                 phase = .unlocked
             }
         } catch let error as LAError {
@@ -165,10 +171,11 @@ final class AuthManager {
         }
     }
 
-    func lock() {
+    func lock(manual: Bool = false) {
         guard hasCredential else { return }
         phase = .locked
         errorMessage = nil
+        offersBiometricsOnAppear = !manual
     }
 
     // MARK: Blocco automatico
@@ -186,6 +193,8 @@ final class AuthManager {
             isObscured = isUnlocked
         case .background:
             isObscured = isUnlocked
+            // Tornando da fuori l'app la biometria torna a proporsi da sola.
+            offersBiometricsOnAppear = true
             if backgroundedAt == nil { backgroundedAt = Date() }
         @unknown default:
             break

@@ -186,7 +186,9 @@ struct GlyphButton: View {
                     Circle().fill(active ? Ink.gold : Ink.surface)
                 }
                 .overlay(Circle().strokeBorder(active ? .clear : Ink.stroke, lineWidth: 1))
+                .contentShape(Circle())
         }
+        .buttonStyle(.plain)
     }
 }
 

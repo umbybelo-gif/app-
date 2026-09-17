@@ -71,6 +71,10 @@ struct ProjectsView: View {
                     .padding(.bottom, 110)
                 }
                 .scrollIndicators(.hidden)
+                .nameAlert("Nuovo progetto", placeholder: "Nome del progetto",
+                           isPresented: $showNewProject, text: $newProjectName) {
+                    store.addProject(name: newProjectName.trimmingCharacters(in: .whitespaces))
+                }
 
                 newProjectButton
             }
@@ -78,23 +82,19 @@ struct ProjectsView: View {
             .navigationDestination(for: UUID.self) { id in
                 ProjectDetailView(projectID: id)
             }
-            .nameAlert("Nuovo progetto", placeholder: "Nome del progetto",
-                       isPresented: $showNewProject, text: $newProjectName) {
-                store.addProject(name: newProjectName.trimmingCharacters(in: .whitespaces))
-            }
             .sheet(isPresented: $showSettings) { SettingsView() }
-            .confirmationDialog("Eliminare “\(pendingDelete?.name ?? "")”?",
-                                isPresented: Binding(get: { pendingDelete != nil },
-                                                     set: { if !$0 { pendingDelete = nil } }),
-                                titleVisibility: .visible) {
-                Button("Elimina progetto e video", role: .destructive) {
-                    if let pendingDelete { store.deleteProject(pendingDelete.id) }
-                    pendingDelete = nil
-                }
-                Button("Annulla", role: .cancel) { pendingDelete = nil }
-            } message: {
-                Text("Vengono cancellati anche tutti i video che contiene. Non si torna indietro.")
+        }
+        .confirmationDialog("Eliminare “\(pendingDelete?.name ?? "")”?",
+                            isPresented: Binding(get: { pendingDelete != nil },
+                                                 set: { if !$0 { pendingDelete = nil } }),
+                            titleVisibility: .visible) {
+            Button("Elimina progetto e video", role: .destructive) {
+                if let pendingDelete { store.deleteProject(pendingDelete.id) }
+                pendingDelete = nil
             }
+            Button("Annulla", role: .cancel) { pendingDelete = nil }
+        } message: {
+            Text("Vengono cancellati anche tutti i video che contiene. Non si torna indietro.")
         }
         .tint(Ink.accent)
     }
@@ -110,7 +110,7 @@ struct ProjectsView: View {
                 }
                 Spacer()
                 HStack(spacing: 8) {
-                    GlyphButton(icon: "lock.fill") { auth.lock() }
+                    GlyphButton(icon: "lock.fill") { auth.lock(manual: true) }
                     GlyphButton(icon: "gearshape.fill") { showSettings = true }
                 }
                 .padding(.top, 6)
@@ -176,55 +176,54 @@ struct ProjectCard: View {
     let store: LibraryStore
 
     private var accent: Color { Color.project(project.colorIndex) }
+    private var cover: Clip? { recent.first }
+    private let coverHeight: CGFloat = 74
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            HStack(alignment: .top, spacing: 12) {
-                Capsule()
-                    .fill(accent)
-                    .frame(width: 3, height: 46)
-                    .shadow(color: accent.opacity(0.8), radius: 6)
+        HStack(alignment: .center, spacing: 12) {
+            Capsule()
+                .fill(accent)
+                .frame(width: 3, height: 46)
+                .shadow(color: accent.opacity(0.8), radius: 6)
 
-                VStack(alignment: .leading, spacing: 8) {
-                    Text(project.name)
-                        .displayFont(23)
-                        .foregroundStyle(project.isArchived ? Ink.dim : Ink.text)
-                        .lineLimit(2)
-                        .multilineTextAlignment(.leading)
+            VStack(alignment: .leading, spacing: 8) {
+                Text(project.name)
+                    .displayFont(23)
+                    .foregroundStyle(project.isArchived ? Ink.dim : Ink.text)
+                    .lineLimit(2)
+                    .multilineTextAlignment(.leading)
 
-                    HStack(spacing: 6) {
-                        TechChip(text: "\(project.sketches.count) sketch", tint: accent)
-                        TechChip(text: "\(project.clipCount) clip")
-                        if project.totalDuration > 0 {
-                            TechChip(text: Formatters.duration(project.totalDuration))
-                        }
-                        if project.isArchived {
-                            TechChip(text: "archiviato", icon: "archivebox.fill", tint: Ink.faint)
-                        }
+                HStack(spacing: 6) {
+                    TechChip(text: "\(project.sketches.count) sketch", tint: accent)
+                    TechChip(text: "\(project.clipCount) clip")
+                    if project.totalDuration > 0 {
+                        TechChip(text: Formatters.duration(project.totalDuration))
+                    }
+                    if project.isArchived {
+                        TechChip(text: "archiviato", icon: "archivebox.fill", tint: Ink.faint)
                     }
                 }
-
-                Spacer(minLength: 0)
-
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 12, weight: .bold))
-                    .foregroundStyle(Ink.faint)
-                    .padding(.top, 8)
             }
-            .padding(16)
 
+            Spacer(minLength: 0)
+
+            // Le ultime riprese, nel loro orientamento vero.
             if !recent.isEmpty {
-                HStack(spacing: 3) {
-                    ForEach(recent) { clip in
-                        ClipThumbnail(clip: clip, url: store.url(for: clip), cornerRadius: 0)
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 56)
-                            .clipped()
+                HStack(spacing: 4) {
+                    ForEach(recent.prefix(2)) { clip in
+                        ClipThumbnail(clip: clip, url: store.url(for: clip), cornerRadius: 8)
+                            .frame(width: clip.coverWidth(height: coverHeight), height: coverHeight)
+                            .overlay(RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                .strokeBorder(Ink.stroke, lineWidth: 1))
                     }
                 }
-                .overlay(alignment: .top) { Rectangle().fill(Ink.stroke).frame(height: 1) }
             }
+
+            Image(systemName: "chevron.right")
+                .font(.system(size: 12, weight: .bold))
+                .foregroundStyle(Ink.faint)
         }
+        .padding(14)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background {
             ZStack {

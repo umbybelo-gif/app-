@@ -251,23 +251,26 @@ struct SketchCard: View {
         sketch.clips.first(where: \.isSelect) ?? sketch.clips.last
     }
 
+    private let coverHeight: CGFloat = 68
+
     var body: some View {
         HStack(spacing: 12) {
-            ZStack {
+            Group {
                 if let cover {
-                    ClipThumbnail(clip: cover, url: store.url(for: cover), cornerRadius: 12)
+                    ClipThumbnail(clip: cover, url: store.url(for: cover), cornerRadius: 10)
+                        .frame(width: cover.coverWidth(height: coverHeight), height: coverHeight)
                 } else {
-                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    RoundedRectangle(cornerRadius: 10, style: .continuous)
                         .fill(Ink.surfaceHigh)
                         .overlay(
                             Image(systemName: "film")
                                 .font(.system(size: 15))
                                 .foregroundStyle(Ink.faint)
                         )
+                        .frame(width: 48, height: coverHeight)
                 }
             }
-            .frame(width: 84, height: 60)
-            .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous)
+            .overlay(RoundedRectangle(cornerRadius: 10, style: .continuous)
                 .strokeBorder(Ink.stroke, lineWidth: 1))
 
             VStack(alignment: .leading, spacing: 7) {
