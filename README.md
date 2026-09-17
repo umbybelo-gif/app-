@@ -34,20 +34,72 @@ Per questo il progetto è un'app SwiftUI + AVFoundation.
 
 ## Installazione sul tuo iPhone
 
-1. Scarica questa cartella sul Mac e apri **`Ciak.xcodeproj`**.
-2. Nella colonna di sinistra seleziona il progetto **Ciak** → scheda **Signing & Capabilities**.
-3. Spunta **Automatically manage signing** e scegli il tuo **Team** (il tuo Apple ID: `Add an Account…` se non c'è).
-4. Cambia il **Bundle Identifier** in qualcosa di unico tuo, ad esempio `com.tuonome.ciak`.
-   Con un Apple ID gratuito è obbligatorio, altrimenti la firma fallisce.
-5. Collega l'iPhone, selezionalo nella barra in alto al posto del simulatore e premi **▶︎ (Run)**.
-6. Sull'iPhone: **Impostazioni › Generali › VPN e gestione dispositivo** → tocca il tuo profilo → **Autorizza**.
+Serve il Mac solo per installarla. Dopo, l'app vive sul telefono da sola.
 
-### Nota importante sulla scadenza
+### 1. Prepara l'iPhone
+
+- Collegalo al Mac con il cavo e **sbloccalo**. Se appare *"Vuoi autorizzare questo computer?"*
+  tocca **Autorizza** e inserisci il codice.
+- Attiva la **Modalità sviluppatore**: **Impostazioni › Privacy e sicurezza › Modalità sviluppatore**
+  → attivala → l'iPhone chiede di **riavviarsi** → dopo il riavvio conferma.
+  Da iOS 16 questo passaggio è obbligatorio: senza, Xcode si rifiuta di installare.
+  La voce compare solo dopo che l'iPhone è stato collegato almeno una volta a Xcode,
+  quindi se non la vedi collega il cavo e riprova.
+
+### 2. Firma l'app col tuo Apple ID
+
+1. Apri **`Ciak.xcodeproj`**.
+2. Nella colonna di sinistra clicca il progetto **Ciak** (icona blu in cima),
+   poi sotto **TARGETS** seleziona **Ciak** → scheda **Signing & Capabilities**.
+3. Spunta **Automatically manage signing**.
+4. In **Team** scegli il tuo Apple ID. Se non c'è: `Add an Account…` → accedi → torna indietro
+   e selezionalo. Un Apple ID normale basta, non serve pagare.
+5. Cambia il **Bundle Identifier** in qualcosa di unico tuo, ad esempio `com.tuonome.ciak`.
+   Con un Apple ID gratuito è obbligatorio: `com.ciak.local` è probabilmente già preso da altri.
+
+Quando sotto compare *"Signing Certificate: Apple Development: tua@email"* senza triangoli
+gialli, sei a posto.
+
+### 3. Installa
+
+1. In alto, al posto del simulatore, seleziona il **tuo iPhone** dal menu dei dispositivi.
+2. Premi **▶︎ (Run)**. La prima volta ci mette un paio di minuti.
+3. L'app si installa e **parte da sola**. Xcode potrebbe fermarsi su un errore
+   *"Could not launch"*: è normale al primo colpo, basta aprire l'app dalla schermata Home.
+
+### 4. Autorizza lo sviluppatore
+
+Al primo avvio l'iPhone dirà *"Sviluppatore non attendibile"*. Vai su
+**Impostazioni › Generali › VPN e gestione dispositivo** → tocca il tuo Apple ID sotto
+*App sviluppatore* → **Autorizza**. Poi riapri l'app.
+
+Da qui in poi l'app ti chiederà i permessi per fotocamera, microfono e Face ID: dai tutti sì,
+altrimenti non può registrare.
+
+### Senza cavo, le volte successive
+
+In Xcode: **Window › Devices and Simulators** → seleziona l'iPhone → spunta
+**Connect via network**. Da quel momento, finché sono sulla stessa rete Wi-Fi,
+puoi reinstallare senza collegare nulla.
+
+### Quanto dura
 
 - **Apple ID gratuito**: l'app smette di aprirsi dopo **7 giorni**. Per rinnovarla ricollega
-  l'iPhone al Mac e premi di nuovo **Run** — *i video e i progetti restano al loro posto*.
+  l'iPhone e premi di nuovo **Run** — *i video e i progetti restano al loro posto*.
+  Limite di 3 app installate così contemporaneamente.
 - **Apple Developer Program (99 €/anno)**: l'app dura **1 anno** e non devi ricollegare nulla.
   Se la usi per lavoro, conviene.
+
+### Se si blocca
+
+| Cosa dice Xcode o l'iPhone | Cosa fare |
+|---|---|
+| *Signing for "Ciak" requires a development team* | Punto 2.4: scegli il Team. |
+| *Failed to register bundle identifier* | Punto 2.5: il Bundle Identifier è già usato, cambialo. |
+| *Developer Mode disabled* | Punto 1: attiva la Modalità sviluppatore e riavvia. |
+| *Untrusted Developer* / *Sviluppatore non attendibile* | Punto 4: autorizza il profilo. |
+| *Maximum number of apps for free development profiles* | Con Apple ID gratuito puoi tenerne 3: disinstalla una vecchia app di prova. |
+| L'iPhone non compare nel menu dei dispositivi | Sbloccalo, autorizza il computer, prova un'altra porta o un altro cavo (alcuni cavi sono solo di ricarica). |
 
 ---
 
