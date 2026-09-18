@@ -150,6 +150,18 @@ sulla finestra del Simulatore**: finisce nell'app Foto e da lì lo importi.
 
 ## Cosa fa
 
+### Icona
+
+L'icona è **disegnata a codice**, non esportata da un editor: `Tools/make_icon.py`
+la genera e la scrive direttamente nel catalogo risorse.
+
+    python3 Tools/make_icon.py
+
+Colori, inclinazione della tavoletta e numero di denti sono variabili in cima al file,
+così è modificabile senza ridisegnarla. Lo script produce anche
+`Tools/preview/icon-preview.png` con l'icona grande e nelle misure in cui la vedrai
+davvero sul telefono: a 40 px molti dettagli spariscono, e conviene verificarlo prima.
+
 ### Aspetto
 
 Interfaccia **sempre scura**, pensata per il set e per la sala montaggio: nero profondo,

@@ -16,3 +16,6 @@ xcuserdata/
 # Swift Package Manager
 .swiftpm/
 .build/
+
+# Anteprime generate
+Tools/preview/
