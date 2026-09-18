@@ -76,6 +76,20 @@ Al primo avvio l'iPhone dirà *"Sviluppatore non attendibile"*. Vai su
 Da qui in poi l'app ti chiederà i permessi per fotocamera, microfono e Face ID: dai tutti sì,
 altrimenti non può registrare.
 
+### Aggiornare l'app senza rifare la firma
+
+Le impostazioni di firma (Team e Bundle Identifier) vivono dentro **`Ciak.xcodeproj`**:
+si fanno una volta sola, non a ogni Run. Ma se sostituisci l'intera cartella con una
+versione nuova, butti via anche quel file e devi rifarle.
+
+Per evitarlo, quando arriva una versione aggiornata **sostituisci solo la cartella `Ciak`**
+(quella con il codice) e **tieni il tuo `Ciak.xcodeproj`**. Il progetto raccoglie da solo
+tutti i file che trova dentro `Ciak`, quindi file aggiunti o rimossi vengono presi al volo
+e la tua firma resta intatta.
+
+L'unica eccezione sono le modifiche alle impostazioni di build (permessi, tema forzato,
+versione minima di iOS): lì serve anche il progetto nuovo, e va segnalato di volta in volta.
+
 ### Senza cavo, le volte successive
 
 In Xcode: **Window › Devices and Simulators** → seleziona l'iPhone → spunta
